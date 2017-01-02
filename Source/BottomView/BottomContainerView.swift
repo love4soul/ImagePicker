@@ -11,7 +11,7 @@ protocol BottomContainerViewDelegate: class {
 open class BottomContainerView: UIView {
 
   struct Dimensions {
-    static let height: CGFloat = 101
+    static let height: CGFloat = 121
   }
 
   lazy var pickerButton: ButtonPicker = { [unowned self] in

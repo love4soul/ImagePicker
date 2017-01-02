@@ -322,6 +322,15 @@ open class ImagePickerController: UIViewController {
       action()
     }
   }
+
+  fileprivate func takeVideo() {
+    guard isBelowImageLimit() else { return }
+    self.cameraController.takeVideo({[weak self] in
+      self?.bottomContainer.stackView.startLoader()
+    }) {
+      print("Done recording video")
+    }
+  }
 }
 
 // MARK: - Action methods
@@ -329,7 +338,11 @@ open class ImagePickerController: UIViewController {
 extension ImagePickerController: BottomContainerViewDelegate {
 
   func pickerButtonDidPress() {
-    takePicture()
+    if Configuration.mediaTypes.contains(.image) {
+      takePicture()
+    } else if Configuration.mediaTypes.contains(.video) {
+      takeVideo()
+    }
   }
 
   func doneButtonDidPress() {
@@ -381,6 +394,10 @@ extension ImagePickerController: CameraViewDelegate {
       }, completion: { _ in
         self.galleryView.collectionView.transform = CGAffineTransform.identity
     })
+  }
+
+  func videoToLibrary() {
+    self.imageToLibrary()
   }
 
   func cameraNotAvailable() {

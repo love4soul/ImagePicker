@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import PhotosUI
+import AssetsLibrary
 
 protocol CameraManDelegate: class {
   func cameraManNotAvailable(_ cameraMan: CameraMan)
@@ -18,6 +19,9 @@ class CameraMan {
   var frontCamera: AVCaptureDeviceInput?
   var stillImageOutput: AVCaptureStillImageOutput?
   var startOnFrontCamera: Bool = false
+
+  //video
+  lazy var videoRecorder = VideoRecorder()
 
   deinit {
     stop()
@@ -106,8 +110,13 @@ class CameraMan {
 
     addInput(input)
 
-    if session.canAddOutput(output) {
+    if Configuration.mediaTypes.contains(.image) && session.canAddOutput(output) {
       session.addOutput(output)
+    }
+
+    if Configuration.mediaTypes.contains(.video) && session.canAddOutput(videoRecorder.movieOutput) {
+      videoRecorder.movieOutput.movieFragmentInterval = kCMTimeInvalid
+      session.addOutput(videoRecorder.movieOutput)
     }
 
     queue.async {
@@ -172,6 +181,21 @@ class CameraMan {
         self.savePhoto(image, location: location, completion: completion)
       }
     }
+  }
+
+  func takeVideo(_ previewLayer: AVCaptureVideoPreviewLayer, location: CLLocation?, completion: (() -> Void)? = nil) {
+    guard let connection = videoRecorder.movieOutput.connection(withMediaType: AVMediaTypeVideo) else {
+      return
+    }
+    connection.videoOrientation = Helper.videoOrientation()
+
+    videoRecorder.videoCompletion = completion
+
+    videoRecorder.startRecording()
+  }
+
+  func stopTakingVideo() {
+    videoRecorder.stopRecording()
   }
 
   func savePhoto(_ image: UIImage, location: CLLocation?, completion: (() -> Void)? = nil) {

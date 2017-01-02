@@ -6,6 +6,7 @@ protocol CameraViewDelegate: class {
 
   func setFlashButtonHidden(_ hidden: Bool)
   func imageToLibrary()
+  func videoToLibrary()
   func cameraNotAvailable()
 }
 
@@ -86,6 +87,7 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
   var animationTimer: Timer?
   var locationManager: LocationManager?
   var startOnFrontCamera: Bool = false
+  var takingVideo: Bool = false
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -201,6 +203,23 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
       completion()
       self.delegate?.imageToLibrary()
     }
+  }
+
+  func takeVideo(_ startProcessing: (() -> Void)? = nil, completion: @escaping () -> ()) {
+    guard let previewLayer = previewLayer else { return }
+
+    cameraMan.videoRecorder.videoProcessing = startProcessing
+
+    if self.takingVideo {
+      cameraMan.stopTakingVideo()
+    } else {
+      cameraMan.takeVideo(previewLayer, location: locationManager?.latestLocation) {
+        completion()
+        self.delegate?.videoToLibrary()
+      }
+    }
+
+    self.takingVideo = !self.takingVideo
   }
 
   // MARK: - Timer methods
