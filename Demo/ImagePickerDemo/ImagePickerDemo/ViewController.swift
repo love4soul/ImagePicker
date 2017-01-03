@@ -1,7 +1,7 @@
 import UIKit
 import ImagePicker
 import Lightbox
-import AVFoundation
+import Photos
 
 class ViewController: UIViewController, ImagePickerDelegate {
 
@@ -65,7 +65,7 @@ class ViewController: UIViewController, ImagePickerDelegate {
     imagePicker.dismiss(animated: true, completion: nil)
   }
   
-  func doneButtonDidPress(_ imagePicker: ImagePickerController, videos: [AVAsset]) {
+  func doneButtonDidPress(_ imagePicker: ImagePickerController, videos: [PHAsset]) {
     imagePicker.dismiss(animated: true, completion: nil)
     print("videos")
   }
