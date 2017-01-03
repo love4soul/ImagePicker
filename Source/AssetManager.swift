@@ -102,8 +102,10 @@ open class AssetManager {
     let imageManager = PHImageManager.default()
     var videos = [AVAsset]()
     let videoAssets = assets.filter { $0.mediaType == .video }
+    let options = PHVideoRequestOptions()
+    options.deliveryMode = .mediumQualityFormat
     videoAssets.forEach { asset in
-      imageManager.requestAVAsset(forVideo: asset, options: nil, resultHandler: { (avAsset, _, _) in
+      imageManager.requestAVAsset(forVideo: asset, options: options, resultHandler: { (avAsset, _, _) in
         if let avAsset = avAsset {
           videos.append(avAsset)
           if videos.count == videoAssets.count {
