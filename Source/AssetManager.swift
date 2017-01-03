@@ -97,4 +97,20 @@ open class AssetManager {
     }
     return images
   }
+
+  open static func resolveVideoAssets(_ assets: [PHAsset], completion: @escaping (([AVAsset]) -> Void)) -> Void {
+    let imageManager = PHImageManager.default()
+    var videos = [AVAsset]()
+    let videoAssets = assets.filter { $0.mediaType == .video }
+    videoAssets.forEach { asset in
+      imageManager.requestAVAsset(forVideo: asset, options: nil, resultHandler: { (avAsset, _, _) in
+        if let avAsset = avAsset {
+          videos.append(avAsset)
+          if videos.count == videoAssets.count {
+            completion(videos)
+          }
+        }
+      })
+    }
+  }
 }

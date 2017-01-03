@@ -6,6 +6,7 @@ import Photos
 
   func wrapperDidPress(_ imagePicker: ImagePickerController, images: [UIImage])
   func doneButtonDidPress(_ imagePicker: ImagePickerController, images: [UIImage])
+  func doneButtonDidPress(_ imagePicker: ImagePickerController, videos: [AVAsset])
   func cancelButtonDidPress(_ imagePicker: ImagePickerController)
 }
 
@@ -346,14 +347,24 @@ extension ImagePickerController: BottomContainerViewDelegate {
   }
 
   func doneButtonDidPress() {
-    var images: [UIImage]
-    if let preferredImageSize = preferredImageSize {
-      images = AssetManager.resolveAssets(stack.assets, size: preferredImageSize)
+    if Configuration.mediaTypes.contains(.video) {
+      AssetManager.resolveVideoAssets(stack.assets, completion: {[weak self] (avAssets) in
+        if let strongSelf = self {
+          DispatchQueue.main.async {
+            strongSelf.delegate?.doneButtonDidPress(strongSelf, videos: avAssets)
+          }
+        }
+      })
     } else {
-      images = AssetManager.resolveAssets(stack.assets)
-    }
+    var images: [UIImage]
+      if let preferredImageSize = preferredImageSize {
+        images = AssetManager.resolveAssets(stack.assets, size: preferredImageSize)
+      } else {
+        images = AssetManager.resolveAssets(stack.assets)
+      }
 
-    delegate?.doneButtonDidPress(self, images: images)
+      delegate?.doneButtonDidPress(self, images: images)
+    }
   }
 
   func cancelButtonDidPress() {
@@ -368,7 +379,6 @@ extension ImagePickerController: BottomContainerViewDelegate {
     } else {
         images = AssetManager.resolveAssets(stack.assets)
     }
-
     delegate?.wrapperDidPress(self, images: images)
   }
 }
