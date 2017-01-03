@@ -432,6 +432,7 @@ extension ImagePickerController: CameraViewDelegate {
       }
 
       self.topView.flashButton.transform = rotate.concatenating(translate)
+      self.cameraController.videoProgressLabel.transform = rotate.concatenating(translate)
     })
   }
 }

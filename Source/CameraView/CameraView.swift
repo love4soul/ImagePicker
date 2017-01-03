@@ -44,6 +44,17 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
     return view
   }()
 
+  lazy var videoProgressLabel: UILabel = {
+      let label = UILabel()
+      label.textColor = .white
+      label.font = UIFont.systemFont(ofSize: 16)
+      label.shadowColor = UIColor.black.withAlphaComponent(0.4)
+      label.shadowOffset = CGSize(width: 0, height: 1)
+      label.textAlignment = .center
+      label.text = "00:00"
+      return label
+  }()
+
   lazy var noCameraLabel: UILabel = { [unowned self] in
     let label = UILabel()
     label.font = Configuration.noCameraFont
@@ -105,10 +116,19 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
       view.addSubview($0)
     }
 
+    if Configuration.mediaTypes.contains(.video) {
+      view.addSubview(self.videoProgressLabel)
+    }
+
     view.addGestureRecognizer(tapGestureRecognizer)
 
     cameraMan.delegate = self
     cameraMan.setup(self.startOnFrontCamera)
+    if Configuration.mediaTypes.contains(.video) {
+      cameraMan.videoRecorder.recordProgress = {[weak self] progress in
+        self?.videoProgressLabel.text = progress.formattedDuration()
+      }
+    }
   }
 
   override func viewDidAppear(_ animated: Bool) {
@@ -149,6 +169,8 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
 
     noCameraButton.center = CGPoint(x: centerX,
       y: noCameraLabel.frame.maxY + 20)
+
+    videoProgressLabel.frame = CGRect(x: 80, y: 4, width: self.view.frame.width-160, height: 28)
 
     blurView.frame = view.bounds
     containerView.frame = view.bounds

@@ -55,5 +55,5 @@ public struct Configuration {
   }()
 
   // MARK: Media type
-  public static var mediaTypes: [PHAssetMediaType] = [.video]
+  public static var mediaTypes: [PHAssetMediaType] = [.image]
 }
