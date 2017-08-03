@@ -1,6 +1,7 @@
 import UIKit
 import ImagePicker
 import Lightbox
+import Photos
 
 class ViewController: UIViewController, ImagePickerDelegate {
 
@@ -37,6 +38,7 @@ class ViewController: UIViewController, ImagePickerDelegate {
 
   func buttonTouched(button: UIButton) {
     let imagePicker = ImagePickerController()
+    Configuration.mediaTypes = [.video]
     imagePicker.delegate = self
 
     present(imagePicker, animated: true, completion: nil)
@@ -61,5 +63,10 @@ class ViewController: UIViewController, ImagePickerDelegate {
 
   func doneButtonDidPress(_ imagePicker: ImagePickerController, images: [UIImage]) {
     imagePicker.dismiss(animated: true, completion: nil)
+  }
+  
+  func doneButtonDidPress(_ imagePicker: ImagePickerController, videos: [PHAsset]) {
+    imagePicker.dismiss(animated: true, completion: nil)
+    print("videos")
   }
 }

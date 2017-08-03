@@ -6,6 +6,8 @@ import Photos
 
   func wrapperDidPress(_ imagePicker: ImagePickerController, images: [UIImage])
   func doneButtonDidPress(_ imagePicker: ImagePickerController, images: [UIImage])
+  //func doneButtonDidPress(_ imagePicker: ImagePickerController, videos: [AVAsset])
+  func doneButtonDidPress(_ imagePicker: ImagePickerController, videos: [PHAsset])
   func cancelButtonDidPress(_ imagePicker: ImagePickerController)
 }
 
@@ -72,6 +74,8 @@ open class ImagePickerController: UIViewController {
   open var imageLimit = 0
   open var preferredImageSize: CGSize?
   open var startOnFrontCamera = false
+  open var collapsePreviewsWhenTakingPicture = true
+  open var cropPictureToCameraSize = false
   var totalSize: CGSize { return UIScreen.main.bounds.size }
   var initialFrame: CGRect?
   var initialContentOffset: CGPoint?
@@ -313,13 +317,28 @@ open class ImagePickerController: UIViewController {
     bottomContainer.pickerButton.isEnabled = false
     bottomContainer.stackView.startLoader()
     let action: (Void) -> Void = { [unowned self] in
-      self.cameraController.takePicture { self.isTakingPicture = false }
+      var cropSize: CGSize?
+      if self.cropPictureToCameraSize {
+        var size = self.cameraController.view.bounds.size
+        size.height -= self.galleryView.bounds.height + self.bottomContainer.bounds.height
+        cropSize = size
+      }
+      self.cameraController.takePicture(cropSize) { self.isTakingPicture = false }
     }
 
-    if Configuration.collapseCollectionViewWhileShot {
+    if Configuration.collapseCollectionViewWhileShot && self.collapsePreviewsWhenTakingPicture {
       collapseGalleryView(action)
     } else {
       action()
+    }
+  }
+
+  fileprivate func takeVideo() {
+    guard isBelowImageLimit() else { return }
+    self.cameraController.takeVideo({[weak self] in
+      self?.bottomContainer.stackView.startLoader()
+    }) {
+      print("Done recording video")
     }
   }
 }
@@ -329,18 +348,35 @@ open class ImagePickerController: UIViewController {
 extension ImagePickerController: BottomContainerViewDelegate {
 
   func pickerButtonDidPress() {
-    takePicture()
+    if Configuration.mediaTypes.contains(.image) {
+      takePicture()
+    } else if Configuration.mediaTypes.contains(.video) {
+      takeVideo()
+    }
   }
 
   func doneButtonDidPress() {
-    var images: [UIImage]
-    if let preferredImageSize = preferredImageSize {
-      images = AssetManager.resolveAssets(stack.assets, size: preferredImageSize)
+    if Configuration.mediaTypes.contains(.video) {
+      
+      delegate?.doneButtonDidPress(self, videos: stack.assets.filter { $0.mediaType == .video })
+      /*
+      AssetManager.resolveVideoAssets(stack.assets, completion: {[weak self] (avAssets) in
+        if let strongSelf = self {
+          DispatchQueue.main.async {
+            strongSelf.delegate?.doneButtonDidPress(strongSelf, videos: avAssets)
+          }
+        }
+      })*/
     } else {
-      images = AssetManager.resolveAssets(stack.assets)
-    }
+    var images: [UIImage]
+      if let preferredImageSize = preferredImageSize {
+        images = AssetManager.resolveAssets(stack.assets, size: preferredImageSize)
+      } else {
+        images = AssetManager.resolveAssets(stack.assets)
+      }
 
-    delegate?.doneButtonDidPress(self, images: images)
+      delegate?.doneButtonDidPress(self, images: images)
+    }
   }
 
   func cancelButtonDidPress() {
@@ -355,7 +391,6 @@ extension ImagePickerController: BottomContainerViewDelegate {
     } else {
         images = AssetManager.resolveAssets(stack.assets)
     }
-
     delegate?.wrapperDidPress(self, images: images)
   }
 }
@@ -369,18 +404,25 @@ extension ImagePickerController: CameraViewDelegate {
   func imageToLibrary() {
     guard let collectionSize = galleryView.collectionSize else { return }
 
-    galleryView.fetchPhotos() {
+    galleryView.fetchPhotos {
       guard let asset = self.galleryView.assets.first else { return }
       self.stack.pushAsset(asset)
     }
-    galleryView.shouldTransform = true
+
     bottomContainer.pickerButton.isEnabled = true
+
+    guard self.collapsePreviewsWhenTakingPicture == true else { return }
+    galleryView.shouldTransform = true
 
     UIView.animate(withDuration: 0.3, animations: {
       self.galleryView.collectionView.transform = CGAffineTransform(translationX: collectionSize.width, y: 0)
       }, completion: { _ in
         self.galleryView.collectionView.transform = CGAffineTransform.identity
     })
+  }
+
+  func videoToLibrary() {
+    self.imageToLibrary()
   }
 
   func cameraNotAvailable() {
@@ -415,6 +457,7 @@ extension ImagePickerController: CameraViewDelegate {
       }
 
       self.topView.flashButton.transform = rotate.concatenating(translate)
+      self.cameraController.videoProgressLabel.transform = rotate.concatenating(translate)
     })
   }
 }

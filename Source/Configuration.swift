@@ -1,4 +1,5 @@
 import UIKit
+import Photos
 
 public struct Configuration {
 
@@ -52,4 +53,7 @@ public struct Configuration {
     view.translatesAutoresizingMaskIntoConstraints = false
     return view
   }()
+
+  // MARK: Media type
+  public static var mediaTypes: [PHAssetMediaType] = [.image]
 }

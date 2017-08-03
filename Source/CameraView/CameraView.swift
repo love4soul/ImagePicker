@@ -6,6 +6,7 @@ protocol CameraViewDelegate: class {
 
   func setFlashButtonHidden(_ hidden: Bool)
   func imageToLibrary()
+  func videoToLibrary()
   func cameraNotAvailable()
 }
 
@@ -41,6 +42,17 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
     view.alpha = 0
 
     return view
+  }()
+
+  lazy var videoProgressLabel: UILabel = {
+      let label = UILabel()
+      label.textColor = .white
+      label.font = UIFont.systemFont(ofSize: 16)
+      label.shadowColor = UIColor.black.withAlphaComponent(0.4)
+      label.shadowOffset = CGSize(width: 0, height: 1)
+      label.textAlignment = .center
+      label.text = "00:00"
+      return label
   }()
 
   lazy var noCameraLabel: UILabel = { [unowned self] in
@@ -86,6 +98,7 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
   var animationTimer: Timer?
   var locationManager: LocationManager?
   var startOnFrontCamera: Bool = false
+  var takingVideo: Bool = false
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -103,10 +116,19 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
       view.addSubview($0)
     }
 
+    if Configuration.mediaTypes.contains(.video) {
+      view.addSubview(self.videoProgressLabel)
+    }
+
     view.addGestureRecognizer(tapGestureRecognizer)
 
     cameraMan.delegate = self
     cameraMan.setup(self.startOnFrontCamera)
+    if Configuration.mediaTypes.contains(.video) {
+      cameraMan.videoRecorder.recordProgress = {[weak self] progress in
+        self?.videoProgressLabel.text = progress.formattedDuration()
+      }
+    }
   }
 
   override func viewDidAppear(_ animated: Bool) {
@@ -148,6 +170,8 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
     noCameraButton.center = CGPoint(x: centerX,
       y: noCameraLabel.frame.maxY + 20)
 
+    videoProgressLabel.frame = CGRect(x: 80, y: 4, width: self.view.frame.width-160, height: 28)
+
     blurView.frame = view.bounds
     containerView.frame = view.bounds
     capturedImageView.frame = view.bounds
@@ -186,7 +210,7 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
     cameraMan.flash(mapping[title] ?? .auto)
   }
 
-  func takePicture(_ completion: @escaping () -> ()) {
+  func takePicture(_ cropSize:CGSize? = nil, _ completion: @escaping () -> ()) {
     guard let previewLayer = previewLayer else { return }
 
     UIView.animate(withDuration: 0.1, animations: {
@@ -197,10 +221,27 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
         })
     })
 
-    cameraMan.takePhoto(previewLayer, location: locationManager?.latestLocation) {
+    cameraMan.takePhoto(previewLayer, location: locationManager?.latestLocation, cropSize: cropSize) {
       completion()
       self.delegate?.imageToLibrary()
     }
+  }
+
+  func takeVideo(_ startProcessing: (() -> Void)? = nil, completion: @escaping () -> ()) {
+    guard let previewLayer = previewLayer else { return }
+
+    cameraMan.videoRecorder.videoProcessing = startProcessing
+
+    if self.takingVideo {
+      cameraMan.stopTakingVideo()
+    } else {
+      cameraMan.takeVideo(previewLayer, location: locationManager?.latestLocation) {
+        completion()
+        self.delegate?.videoToLibrary()
+      }
+    }
+
+    self.takingVideo = !self.takingVideo
   }
 
   // MARK: - Timer methods

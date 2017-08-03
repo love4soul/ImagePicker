@@ -36,24 +36,36 @@ open class AssetManager {
   open static func fetch(_ completion: @escaping (_ assets: [PHAsset]) -> Void) {
     let fetchOptions = PHFetchOptions()
     let authorizationStatus = PHPhotoLibrary.authorizationStatus()
-    var fetchResult: PHFetchResult<PHAsset>?
+    var photoFetchResult: PHFetchResult<PHAsset>?
+    var videoFetchResult: PHFetchResult<PHAsset>?
 
     guard authorizationStatus == .authorized else { return }
 
-    if fetchResult == nil {
-      fetchResult = PHAsset.fetchAssets(with: .image, options: fetchOptions)
+    if photoFetchResult == nil {
+      photoFetchResult = PHAsset.fetchAssets(with: .image, options: fetchOptions)
     }
 
-    if fetchResult?.count > 0 {
-      var assets = [PHAsset]()
-      fetchResult?.enumerateObjects({ object, index, stop in
+    if videoFetchResult == nil {
+      videoFetchResult = PHAsset.fetchAssets(with: .video, options: fetchOptions)
+    }
+
+    var assets = [PHAsset]()
+
+    if Configuration.mediaTypes.contains(.image) && photoFetchResult?.count > 0 {
+      photoFetchResult?.enumerateObjects({ object, _, _ in
         assets.insert(object, at: 0)
       })
+    }
 
-      DispatchQueue.main.async(execute: {
-        completion(assets)
+    if Configuration.mediaTypes.contains(.video) && videoFetchResult?.count > 0 {
+      videoFetchResult?.enumerateObjects({ object, _, _ in
+        assets.insert(object, at: 0)
       })
     }
+
+    DispatchQueue.main.async(execute: {
+      completion(assets)
+    })
   }
 
   open static func resolveAsset(_ asset: PHAsset, size: CGSize = CGSize(width: 720, height: 1280), completion: @escaping (_ image: UIImage?) -> Void) {
@@ -84,5 +96,23 @@ open class AssetManager {
       }
     }
     return images
+  }
+
+  open static func resolveVideoAssets(_ assets: [PHAsset], completion: @escaping (([AVAsset]) -> Void)) -> Void {
+    let imageManager = PHImageManager.default()
+    var videos = [AVAsset]()
+    let videoAssets = assets.filter { $0.mediaType == .video }
+    let options = PHVideoRequestOptions()
+    options.deliveryMode = .mediumQualityFormat
+    videoAssets.forEach { asset in
+      imageManager.requestAVAsset(forVideo: asset, options: options, resultHandler: { (avAsset, _, _) in
+        if let avAsset = avAsset {
+          videos.append(avAsset)
+          if videos.count == videoAssets.count {
+            completion(videos)
+          }
+        }
+      })
+    }
   }
 }
