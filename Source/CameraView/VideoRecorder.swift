@@ -80,7 +80,7 @@ extension VideoRecorder: AVCaptureFileOutputRecordingDelegate {
       self.recordTimer?.invalidate()
       self.recordTimer = nil
       recordProgress?(0)
-      library.writeVideoAtPath(toSavedPhotosAlbum: outputFileURL, completionBlock: {[weak self] (assetUrl, error) in
+      library.writeVideoAtPath(toSavedPhotosAlbum: outputFileURL, completionBlock: {[weak self] (_, error) in
         if error != nil {
           print("Unable to save video to the iPhone \(error!.localizedDescription)")
         } else {

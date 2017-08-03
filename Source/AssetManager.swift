@@ -52,13 +52,13 @@ open class AssetManager {
     var assets = [PHAsset]()
 
     if Configuration.mediaTypes.contains(.image) && photoFetchResult?.count > 0 {
-      photoFetchResult?.enumerateObjects({ object, index, stop in
+      photoFetchResult?.enumerateObjects({ object, _, _ in
         assets.insert(object, at: 0)
       })
     }
 
     if Configuration.mediaTypes.contains(.video) && videoFetchResult?.count > 0 {
-      videoFetchResult?.enumerateObjects({ object, index, stop in
+      videoFetchResult?.enumerateObjects({ object, _, _ in
         assets.insert(object, at: 0)
       })
     }

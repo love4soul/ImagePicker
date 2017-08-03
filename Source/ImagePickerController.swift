@@ -74,6 +74,8 @@ open class ImagePickerController: UIViewController {
   open var imageLimit = 0
   open var preferredImageSize: CGSize?
   open var startOnFrontCamera = false
+  public var collapsePreviewsWhenTakingPicture = true
+  public var cropPictureToCameraSize = false
   var totalSize: CGSize { return UIScreen.main.bounds.size }
   var initialFrame: CGRect?
   var initialContentOffset: CGPoint?
@@ -315,10 +317,16 @@ open class ImagePickerController: UIViewController {
     bottomContainer.pickerButton.isEnabled = false
     bottomContainer.stackView.startLoader()
     let action: (Void) -> Void = { [unowned self] in
-      self.cameraController.takePicture { self.isTakingPicture = false }
+      var cropSize: CGSize?
+      if self.cropPictureToCameraSize {
+        var size = self.cameraController.view.bounds.size
+        size.height -= self.galleryView.bounds.height + self.bottomContainer.bounds.height
+        cropSize = size
+      }
+      self.cameraController.takePicture(cropSize) { self.isTakingPicture = false }
     }
 
-    if Configuration.collapseCollectionViewWhileShot {
+    if Configuration.collapseCollectionViewWhileShot && self.collapsePreviewsWhenTakingPicture {
       collapseGalleryView(action)
     } else {
       action()
@@ -396,12 +404,15 @@ extension ImagePickerController: CameraViewDelegate {
   func imageToLibrary() {
     guard let collectionSize = galleryView.collectionSize else { return }
 
-    galleryView.fetchPhotos() {
+    galleryView.fetchPhotos {
       guard let asset = self.galleryView.assets.first else { return }
       self.stack.pushAsset(asset)
     }
-    galleryView.shouldTransform = true
+
     bottomContainer.pickerButton.isEnabled = true
+
+    guard self.collapsePreviewsWhenTakingPicture == true else { return }
+    galleryView.shouldTransform = true
 
     UIView.animate(withDuration: 0.3, animations: {
       self.galleryView.collectionView.transform = CGAffineTransform(translationX: collectionSize.width, y: 0)

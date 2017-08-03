@@ -210,7 +210,7 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
     cameraMan.flash(mapping[title] ?? .auto)
   }
 
-  func takePicture(_ completion: @escaping () -> ()) {
+  func takePicture(_ cropSize:CGSize? = nil, _ completion: @escaping () -> ()) {
     guard let previewLayer = previewLayer else { return }
 
     UIView.animate(withDuration: 0.1, animations: {
@@ -221,7 +221,7 @@ class CameraView: UIViewController, CLLocationManagerDelegate, CameraManDelegate
         })
     })
 
-    cameraMan.takePhoto(previewLayer, location: locationManager?.latestLocation) {
+    cameraMan.takePhoto(previewLayer, location: locationManager?.latestLocation, cropSize: cropSize) {
       completion()
       self.delegate?.imageToLibrary()
     }
